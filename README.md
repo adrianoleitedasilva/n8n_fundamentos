@@ -21,7 +21,7 @@
 
 ## Ferramentas
 
-- NodeJS
+- NodeJS(Aqui estou usando a versão 22.21.1)
 
 ## Instalando o n8n
 
