@@ -35,11 +35,6 @@
     npx n8n
 ```
 
-**Iniciando o servidor local do n8n**
-```shell
-    n8n
-```
-
 ## Triggers
 
 **Triggers são pontos de partida dos workflows**: eles disparam o fluxo de automação a partir de um evento externo ou interno.
