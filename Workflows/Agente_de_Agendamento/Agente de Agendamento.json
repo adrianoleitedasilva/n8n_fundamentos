@@ -1,0 +1,165 @@
+{
+  "name": "Agente de Agendamento",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -752,
+        -80
+      ],
+      "id": "9e4e2948-834f-4f6c-885b-7e910306612b",
+      "name": "Recebendo msg do usuario",
+      "webhookId": "946daef6-e27e-4732-9a6a-d32d258c89ad"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=Você é um Agente que tem como principal função Agendar Eventos para os Usuários, e fazer outras tarefas relacionadas a estes eventos. \n\n1 - Para saber os eventos disponíveis:\n\nUse a ferramenta Resgata todos os eventos disponiveis, que é onde você irá obter uma lista de todos os eventos que o usuário pode escolher.\n\nNão exiba eventos ocultos\n\n---\nInformações Importantes\n\nData de Hoje: {{ $now }}\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -528,
+        -80
+      ],
+      "id": "179be997-d79f-4ca0-9112-8ea39170df59",
+      "name": "Agente de Agendamento"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        96
+      ],
+      "id": "1b67f14e-b530-477f-aa9f-b75ea53d3e68",
+      "name": "Memoria"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        96
+      ],
+      "id": "267195af-4dc4-472e-8589-3219c70784c3",
+      "name": "Modelo",
+      "credentials": {
+        "openAiApi": {
+          "id": "y3dmt1B53bXKRNUw",
+          "name": "API OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "cal_live_4d5a983d4f96dbb941cff159cc870fc2",
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "4c0b5b3c-3629-47a7-b35f-1a0c1946268e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Resgata todos os eventos disponiveis",
+        "url": "https://api.cal.com/v2/event-types",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -320,
+        96
+      ],
+      "id": "0650fc3c-a886-4573-a67d-78f916a02c31",
+      "name": "Resgata todos os eventos disponiveis",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "AslGcgERtow2IoSS",
+          "name": "Header Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recebendo msg do usuario": {
+      "main": [
+        [
+          {
+            "node": "Agente de Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente de Agendamento",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente de Agendamento",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resgata todos os eventos disponiveis": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente de Agendamento",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9f4e3188-b280-4a66-a36e-3fcbf905dfb2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "631944f648020fa2cfd53b8293618d397ae6701b91d9e2619d1790eea8e97487"
+  },
+  "id": "NzSSGAlqI5JnMlT1",
+  "tags": []
+}

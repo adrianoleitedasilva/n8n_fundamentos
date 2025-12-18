@@ -1,0 +1,192 @@
+{
+  "name": "01",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -544,
+        -288
+      ],
+      "id": "0a93d0cb-1d94-4281-916d-8af3964f0f77",
+      "name": "When chat message received",
+      "webhookId": "dfdf59d5-5889-4d65-986b-235ab69e7e49"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=Você é um assistente de previsão do Tempo. \n\nUtilize a tool da Wikipedia se o usuario solicitar algum dado que não envolva previsão do tempo.\n\nE se ele quiser saber alguma informação de tempo/previsão você deve utilizar a ferramenta de Previsao_do_Tempo."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -336,
+        -288
+      ],
+      "id": "369d3d19-ad2e-44c0-8fc7-a04f438abd2d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -480,
+        -80
+      ],
+      "id": "1f204586-e1f0-49bc-a923-2dc4e645ee9a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "y3dmt1B53bXKRNUw",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        -80
+      ],
+      "id": "98a4d67b-b501-489d-9d55-3ec1c47b05e7",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -112
+      ],
+      "id": "4a255809-d0ec-4f76-8924-cb5f61120f3f",
+      "name": "Wikipedia1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "BefnMxZQ0UcJU25i",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/BefnMxZQ0UcJU25i",
+          "cachedResultName": "My workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "city": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('city', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "city"
+          ],
+          "schema": [
+            {
+              "id": "city",
+              "displayName": "city",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -192,
+        -80
+      ],
+      "id": "b2381b09-56f3-4ce9-b8a3-7c8927eac945",
+      "name": "Call 'My workflow'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wikipedia1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'My workflow'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aa87d9fc-c638-4706-9426-a67720b4734b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "631944f648020fa2cfd53b8293618d397ae6701b91d9e2619d1790eea8e97487"
+  },
+  "id": "xSNy16pZgZLoPnZg",
+  "tags": []
+}

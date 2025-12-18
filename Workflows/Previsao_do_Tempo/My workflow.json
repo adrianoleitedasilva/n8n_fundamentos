@@ -1,0 +1,215 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        96
+      ],
+      "id": "08033ea9-8e50-40c4-b464-554bb4b17b82",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "city"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        -112
+      ],
+      "id": "41587f6d-5b89-4c2f-9087-a9118c1749af",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "cityName": "={{ $json.city }}"
+      },
+      "type": "n8n-nodes-base.openWeatherMap",
+      "typeVersion": 1,
+      "position": [
+        0,
+        96
+      ],
+      "id": "e56aeb81-2edd-4855-a1dd-c0bdfc54338e",
+      "name": "OpenWeatherMap",
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "5sMC3iFNexf1fr7C",
+          "name": "OpenWeatherMap account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Coloque os parametros que eu enviar em um campo chamado query\n\nGaranta que seja ma string\n\nweather_description:{{ $json.weather[0].description }}\ntemp:{{ $json.main.temp }}\nhumidity:{{ $json.main.humidity }}\nwind_speed:{{ $json.wind.speed }}\ncity: {{ $json.name }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        96
+      ],
+      "id": "53afc977-f133-41cf-a871-1962828386fe",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "y3dmt1B53bXKRNUw",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $json.output[0].content[0].text }}"
+            },
+            {
+              "content": "Converta o Contentpara Portugues/BR, usando um tom amigavel\n\nInsira emojis para descrever a previsao do tempo\n\nE no final, coloque uma piada"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        96
+      ],
+      "id": "6801c9c3-9f95-4a60-9be6-5e692b65f7b0",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "y3dmt1B53bXKRNUw",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d37f6ce5-fbb4-49a8-bc0b-d3a08d4fd397",
+              "name": "response",
+              "value": "={{ $json.output[0].content[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        96
+      ],
+      "id": "2cabd17a-77cd-43aa-9f68-01b9a65c19b1",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "OpenWeatherMap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenWeatherMap": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "OpenWeatherMap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1720784d-b2b8-4b49-a312-7d4bc1b66729",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "631944f648020fa2cfd53b8293618d397ae6701b91d9e2619d1790eea8e97487"
+  },
+  "id": "BefnMxZQ0UcJU25i",
+  "tags": []
+}
