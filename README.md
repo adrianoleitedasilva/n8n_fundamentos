@@ -39,3 +39,27 @@
 ```shell
     n8n
 ```
+
+## Triggers
+
+**Triggers são pontos de partida dos workflows**: eles disparam o fluxo de automação a partir de um evento externo ou interno.
+
+**Tipos comuns de triggers**:
+- **Webhook Trigger**: escuta requisições HTTP externas. Ideal para integrar com APIs, formulários e sistemas.
+- **Schedule Trigger**: executa o workflow com base em datas e horários definidos (ex: todo dia às 10h).
+- **Cron Trigger**: dispara fluxos com base em expressões cron avançadas.
+- **Interval Trigger**: executa o fluxo em ciclos regulares (ex: a cada 5 minutos).
+- **App Triggers (ex: Telegram, Gmail, Slack)**: iniciam o fluxo com base em eventos desses aplicativos.
+- **Gatilhos personalizados**:é possível configurar triggers que ouvem eventos de ferramentas específicas via APIs, autenticações ou webhooks.
+
+## Action Nodes
+
+**Action Nodes executam tarefas após o trigger**: são os blocos responsáveis por realizar ações dentro do workflow, como enviar e-mails, manipular dados ou integrar APIs.
+
+**Exemplos de ações que podem ser realizadas**:
+- **Envio de mensagens** (Telegram, Slack, Discord)
+- **Requisições HTTP** (GET, POST, PUT, DELETE para APIs externas)
+- **Manipulação de arquivos** (upload, download, conversões)
+- **Interação com bancos de dados** (consultas, inserções, atualizações)
+- **Integração com planilhas e CRMs** (Google Sheets, Notion, HubSpot)
+- **Personalizáveis e dinâmicos**: cada nó de ação pode usar dados recebidos do trigger ou de outros nós para executar tarefas específicas.
