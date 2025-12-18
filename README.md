@@ -63,3 +63,14 @@
 - **Interação com bancos de dados** (consultas, inserções, atualizações)
 - **Integração com planilhas e CRMs** (Google Sheets, Notion, HubSpot)
 - **Personalizáveis e dinâmicos**: cada nó de ação pode usar dados recebidos do trigger ou de outros nós para executar tarefas específicas.
+
+## Trabalhar com dados dos nós
+
+- Cada nó no n8n recebe e envia dados estruturados em JSON
+- É possível acessar os dados de nós anteriores usando a sintaxe:
+{{$json.nome_do_campo}}
+- Utilize o botão de "Exibir dados" para visualizar a saída de qualquer nó
+- Campos com ícone de lápis permitem usar Expressões Dinâmicas
+- Pode-se transformar os dados com nós de código (Function, Set, etc.)
+- Os dados trafegam de um nó para outro como uma lista de itens (array de objetos)
+- Filtros, loops e mapeamentos podem ser feitos com nós de controle de fluxo
