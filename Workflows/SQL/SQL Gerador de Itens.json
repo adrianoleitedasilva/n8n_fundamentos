@@ -1,0 +1,293 @@
+{
+  "name": "SQL Gerador de Itens",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -736,
+        -512
+      ],
+      "id": "ffefb493-5fa7-4e9a-9dc2-458232690b41",
+      "name": "When chat message received",
+      "webhookId": "587f9f30-edfd-4ff7-a11a-a53403362901"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userText }}",
+        "options": {
+          "systemMessage": "=Você é um “parser” para automação no n8n.\nSua tarefa é converter a mensagem do usuário em um JSON válido.\nResponda somente com JSON (sem texto fora do JSON).\nOperações permitidas em operation: create_table, insert, select, delete_rows, delete_table.\nRegras de intenção:\n\nSe o usuário disser “criar tabela / criar table / create table / criar uma tabela” => create_table\nSe disser “inserir / adicionar / cadastrar / insert” => insert\nSe disser “consultar / listar / buscar / select” => select\nSe disser “deletar linhas / apagar registro / remover item” => delete_rows\nSe disser “deletar tabela / drop table / remover tabela” => delete_table\n\nEstrutura obrigatória:\n\n{\n  \"operation\": \"\",\n  \"table\": \"\",\n  \"schema\": {},\n  \"data\": {},\n  \"filters\": {},\n  \"limit\": 50\n}\n\ntable: apenas letras, números e _ (sem espaços).\nschema: usado SOMENTE em create_table (ex: {\"id\":\"INTEGER\",\"nome\":\"TEXT\"}).\ndata: usado em insert.\nfilters: usado em select e delete_rows.\nSe algo não existir, use {}.\n\nEXEMPLOS (coloque no prompt também)\nUsuário: “Quero criar uma table com nome n8n_automatica, com id, nome, email”\nSaída:\n{\"operation\":\"create_table\",\"table\":\"n8n_automatica\",\"schema\":{\"id\":\"INTEGER\",\"nome\":\"TEXT\",\"email\":\"TEXT\"},\"data\":{},\"filters\":{},\"limit\":50}\n\nUsuário: “insere na n8n_automatica id 1 nome Adriano email a@a.com”\nSaída:\n{\"operation\":\"insert\",\"table\":\"n8n_automatica\",\"schema\":{},\"data\":{\"id\":1,\"nome\":\"Adriano\",\"email\":\"a@a.com\"},\"filters\":{},\"limit\":50}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -352,
+        -512
+      ],
+      "id": "eb187185-517b-4a97-82ab-689a835f1e4b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        -320
+      ],
+      "id": "f406d726-ead9-459d-9da7-f73720888b6b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "y3dmt1B53bXKRNUw",
+          "name": "API OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6563d83-f4f2-4990-9d6a-85054b599f53",
+              "name": "operation_norm",
+              "value": "={{ \n  (($json.operation ?? $json.parsed?.operation) ?? '')\n    .toString()\n    .trim()\n    .toLowerCase()\n}}\n",
+              "type": "string"
+            },
+            {
+              "id": "d1cbe3b3-d2c3-4aad-92ec-1d4ecef135ef",
+              "name": "table_norm",
+              "value": "={{ \n  (($json.table ?? $json.parsed?.table) ?? '')\n    .toString()\n    .trim()\n    .toLowerCase()\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')\n    .replace(/\\s+/g,'_')\n    .replace(/[^a-z0-9_]/g,'')\n}}",
+              "type": "string"
+            },
+            {
+              "id": "9ea8362d-3252-497e-954b-1e3cf57b18ed",
+              "name": "limit_norm",
+              "value": "={{ Math.min(Number($json.limit ?? 50), 200) }}",
+              "type": "string"
+            },
+            {
+              "id": "0ec35817-8fb7-4cff-85cb-428cc4242313",
+              "name": "schema_norm",
+              "value": "={{ $json.schema ?? {} }}",
+              "type": "string"
+            },
+            {
+              "id": "a01c9d23-81e3-4b66-bfb5-db48f57a813a",
+              "name": "data_norm",
+              "value": "={{ $json.data ?? {} }}",
+              "type": "string"
+            },
+            {
+              "id": "ecfa3282-80cc-435b-bdb2-347989348990",
+              "name": "filters_norm",
+              "value": "={{ $json.filters ?? {} }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        192,
+        -512
+      ],
+      "id": "93b8beb2-d2b9-4b7b-861c-fef6c10d898a",
+      "name": "Normalize"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate (n8n Code node - JavaScript)\n// Versão atualizada para:\n// - Considerar que o AI Agent retorna JSON em string no campo `output`\n// - Considerar que ParseAgentJSON pode ter colocado o objeto em `parsed` e/ou mesclado no root\n// - Normalizar operation/table com fallback\n// - Aplicar allowlist e/ou prefixo permitido\n// - Garantir consistência mínima de schema/data/filters\n// - Erros explicativos (debug-friendly)\n\nconst item = $input.first();\nconst json = item.json;\n\n// =====================================================\n// CONFIGURAÇÃO DE SEGURANÇA (AJUSTE AQUI)\n// =====================================================\n\n// 1) Allowlist explícita (mais seguro)\nconst allowedTables = ['usuarios', 'clientes', 'produtos', 'pedidos', 'n8n_automatica'];\n\n// 2) Permitir tabelas dinâmicas por prefixo (opcional)\nconst allowDynamicPrefix = true;\nconst allowedPrefix = 'n8n_';\n\n// 3) Limite máximo de registros em SELECT\nconst MAX_LIMIT = 200;\n\n// =====================================================\n// HELPERS\n// =====================================================\n\nfunction pickFirstDefined(...vals) {\n  for (const v of vals) {\n    if (v !== undefined && v !== null) return v;\n  }\n  return undefined;\n}\n\nfunction normalizeOperation(value) {\n  return (value ?? '').toString().trim().toLowerCase();\n}\n\nfunction normalizeIdentifier(value) {\n  // sem acento, sem espaços, só [a-z0-9_]\n  return (value ?? '')\n    .toString()\n    .trim()\n    .toLowerCase()\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .replace(/\\s+/g, '_')\n    .replace(/[^a-z0-9_]/g, '');\n}\n\nfunction ensurePlainObject(value, name) {\n  // aceita {} e objetos simples; rejeita arrays e tipos estranhos\n  if (value === undefined || value === null) return {};\n  if (typeof value !== 'object' || Array.isArray(value)) {\n    throw new Error(`${name} inválido: esperado objeto (ex: {\"id\":10})`);\n  }\n  return value;\n}\n\n// =====================================================\n// 0) GARANTIA: se ainda não existir parsed, tenta parsear de output\n//    (isso torna o Validate \"auto-suficiente\" caso você esqueça o ParseAgentJSON)\n// =====================================================\n\nlet parsed = json.parsed;\n\nif (!parsed) {\n  const raw = (json.output ?? '').toString().trim();\n  if (raw) {\n    const start = raw.indexOf('{');\n    const end = raw.lastIndexOf('}');\n    if (start !== -1 && end !== -1) {\n      try {\n        parsed = JSON.parse(raw.slice(start, end + 1));\n      } catch (e) {\n        // se falhar, seguimos sem parsed (e os erros abaixo serão explicativos)\n        parsed = undefined;\n      }\n    }\n  }\n}\n\n// =====================================================\n// 1) OPERATION (root -> parsed -> fallback por texto)\n// =====================================================\n\nlet op = normalizeOperation(\n  pickFirstDefined(\n    json.operation_norm,\n    json.operation,\n    parsed?.operation\n  )\n);\n\nconst userText = (json.userText ?? json.chatInput ?? '').toString().toLowerCase();\n\nif (!op && userText) {\n  if (/criar\\s+(uma\\s+)?tabel(a|e)|create\\s+table|criar\\s+table/.test(userText)) op = 'create_table';\n  else if (/inser(ir|ir)|cadastrar|adicionar|insert/.test(userText)) op = 'insert';\n  else if (/consultar|listar|buscar|select/.test(userText)) op = 'select';\n  else if (/deletar|apagar|remover/.test(userText)) op = 'delete_rows';\n}\n\nif (!op) {\n  throw new Error(\n    `operation vazia. ` +\n    `Campos disponíveis: ${Object.keys(json).join(', ')}. ` +\n    `Dica: garanta ParseAgentJSON após o AI Agent ou que o Agent retorne operation em campos.`\n  );\n}\n\n// =====================================================\n// 2) TABLE (root -> parsed)\n// =====================================================\n\nconst rawTable = pickFirstDefined(\n  json.table_norm,\n  json.table,\n  parsed?.table\n);\n\nconst table = normalizeIdentifier(rawTable);\n\nif (!table) {\n  const outputSnippet = (json.output ?? '').toString().slice(0, 200);\n  throw new Error(\n    `table vazia. table recebido(root): \"${json.table ?? ''}\". ` +\n    `table recebido(parsed): \"${parsed?.table ?? ''}\". ` +\n    (outputSnippet ? `Snippet output: \"${outputSnippet}\"` : '') +\n    ` | Dica: garanta que o Agent retorne \"table\" (ex: \"usuarios\") e que ParseAgentJSON esteja antes do Normalize.`\n  );\n}\n\n// =====================================================\n// 3) LIMIT\n// =====================================================\n\nlet limit = Number(pickFirstDefined(json.limit_norm, json.limit, parsed?.limit, 50));\nif (!Number.isFinite(limit) || limit <= 0) limit = 50;\nlimit = Math.min(limit, MAX_LIMIT);\n\n// =====================================================\n// 4) FILTERS / DATA / SCHEMA (root -> parsed)\n// =====================================================\n\nconst filters = ensurePlainObject(pickFirstDefined(json.filters_norm, json.filters, parsed?.filters), 'filters');\nconst data = ensurePlainObject(pickFirstDefined(json.data_norm, json.data, parsed?.data), 'data');\nconst schema = ensurePlainObject(pickFirstDefined(json.schema_norm, json.schema, parsed?.schema), 'schema');\n\n// =====================================================\n// 5) Consistência mínima por operação\n// =====================================================\n\nif (op === 'create_table' && !Object.keys(schema).length) {\n  throw new Error('create_table exige schema (ex: {\"id\":\"INTEGER\",\"nome\":\"TEXT\"})');\n}\n\nif (op === 'insert' && !Object.keys(data).length) {\n  throw new Error('insert exige data (ex: {\"nome\":\"Ana\",\"email\":\"a@a.com\"})');\n}\n\nif (op === 'delete_rows' && !Object.keys(filters).length) {\n  throw new Error('delete_rows exige filters (ex: {\"id\":10})');\n}\n\n// =====================================================\n// 6) Segurança: allowlist / prefixo dinâmico\n// =====================================================\n\nconst isAllowedByList = allowedTables.includes(table);\nconst isAllowedByPrefix = allowDynamicPrefix && table.startsWith(allowedPrefix);\n\nif (!isAllowedByList && !isAllowedByPrefix) {\n  throw new Error(\n    `Tabela não permitida: \"${table}\". Permitidas: [${allowedTables.join(', ')}]` +\n    (allowDynamicPrefix ? ` ou prefixo \"${allowedPrefix}*\"` : '')\n  );\n}\n\n// =====================================================\n// 7) Retorno padronizado\n// =====================================================\n\nreturn [{\n  json: {\n    ...json,\n    // normalizados e garantidos\n    operation_norm: op,\n    table_norm: table,\n    limit_norm: limit,\n    filters_norm: filters,\n    data_norm: data,\n    schema_norm: schema,\n    // guarda parsed (se existir) para debug\n    parsed: parsed ?? json.parsed,\n    _validate: {\n      allowedByList: isAllowedByList,\n      allowedByPrefix: isAllowedByPrefix\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        -512
+      ],
+      "id": "21a7ad9b-881e-4998-b28b-f66b195d9d84",
+      "name": "Validate"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "17d6bd6b-fa53-40b3-bc87-0c8e5729c45a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        -512
+      ],
+      "id": "f528c3c9-798a-4cb7-93d4-fe6d78b2738b",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "34e33b86-3f87-4f6d-b1fa-05dad7080f13",
+              "name": "userText",
+              "value": "={{ $json.chatInput.toString().trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -528,
+        -512
+      ],
+      "id": "0811e9b8-3a40-49b4-ac19-c49bd8ef4793",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst json = item.json;\n\nconst raw = (json.output ?? '').toString().trim();\nif (!raw) throw new Error('Campo output vazio (Agent não retornou nada)');\n\nconst start = raw.indexOf('{');\nconst end = raw.lastIndexOf('}');\nif (start === -1 || end === -1) {\n  throw new Error('Não encontrei JSON dentro de output. Output: ' + raw.slice(0, 200));\n}\n\nconst parsed = JSON.parse(raw.slice(start, end + 1));\n\n// Mescla no root + guarda em parsed para debug\nreturn [{\n  json: {\n    ...json,\n    ...parsed,\n    parsed\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -512
+      ],
+      "id": "198a6ff2-6e58-4651-bc8a-20d3e52a0b97",
+      "name": "ParseAgentJSON"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "ParseAgentJSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ParseAgentJSON": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "040db9f6-1d6c-4186-85ab-3bceb63dcc4c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "631944f648020fa2cfd53b8293618d397ae6701b91d9e2619d1790eea8e97487"
+  },
+  "id": "w4qQfTxKKLtQlKq0",
+  "tags": []
+}
